@@ -95,28 +95,31 @@ namespace TwitDownloader
                             }
                         }
 
-                        // Download Security Now Shownotes
-                        filename = UrlHelper.GetFileName(String.Format(snShowNotes, episode.episodeNumber));
-                        if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
+                        if (showId == "1636") // Only Security Now
                         {
-                            Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
-                            webClient.DownloadFile(String.Format(snShowNotes, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
-                        }
+                            // Download Security Now Shownotes
+                            filename = UrlHelper.GetFileName(String.Format(snShowNotes, episode.episodeNumber));
+                            if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
+                            {
+                                Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
+                                webClient.DownloadFile(String.Format(snShowNotes, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                            }
 
-                        // Download Security Now Transcript PDF
-                        filename = UrlHelper.GetFileName(String.Format(snTranscriptPdf, episode.episodeNumber));
-                        if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
-                        {
-                            Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
-                            webClient.DownloadFile(String.Format(snTranscriptPdf, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
-                        }
+                            // Download Security Now Transcript PDF
+                            filename = UrlHelper.GetFileName(String.Format(snTranscriptPdf, episode.episodeNumber));
+                            if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
+                            {
+                                Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
+                                webClient.DownloadFile(String.Format(snTranscriptPdf, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                            }
 
-                        // Download Security Now Transcript Text
-                        filename = UrlHelper.GetFileName(String.Format(snTranscriptText, episode.episodeNumber));
-                        if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
-                        {
-                            Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
-                            webClient.DownloadFile(String.Format(snTranscriptText, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                            // Download Security Now Transcript Text
+                            filename = UrlHelper.GetFileName(String.Format(snTranscriptText, episode.episodeNumber));
+                            if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
+                            {
+                                Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
+                                webClient.DownloadFile(String.Format(snTranscriptText, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                            }
                         }
                     }
                 }
