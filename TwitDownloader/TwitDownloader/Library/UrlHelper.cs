@@ -11,12 +11,7 @@ namespace TwitDownloader.Library
         public static string GetFileName(string url)
         {
             Uri uri = new Uri(url);
-            if (uri.IsFile)
-            {
-                return System.IO.Path.GetFileName(uri.LocalPath);
-            }
-
-            return string.Empty;
+            return System.IO.Path.GetFileName(uri.AbsolutePath);
         }
     }
 }
