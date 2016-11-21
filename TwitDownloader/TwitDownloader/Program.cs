@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -18,6 +19,24 @@ namespace TwitDownloader
             string appid = "f6924e79";
             string appkey = "05cb3378be72373bf0b3d5607c596b44";
             string showId = String.Empty;
+            bool downloadAudio = true;
+            bool downloadHdVideo = false;
+            bool downloadLargeVideo = false;
+            bool downloadSmallVideo = false;
+            bool addYouTubeLink = false;
+            string saveToParent = @"c:\twit\";
+
+            // Show files
+            string showMP3 = String.Empty;
+            string showVideoHD = String.Empty;
+            string showVideoLarge = String.Empty;
+            string showVideoSmall = String.Empty;
+            string showYouTube = String.Empty;
+
+            // Additional security now files
+            string snShowNotes = "https://www.grc.com/sn/sn-{0}-notes.pdf";
+            string snTranscriptPdf = "https://www.grc.com/sn/sn-{0}.pdf";
+            string snTranscriptText = "https://www.grc.com/sn/sn-{0}.txt";
 
             // Make sure there is at least a show id included
             if (args.Count() == 0)
@@ -28,15 +47,21 @@ namespace TwitDownloader
 
             Arguments a = new Arguments(args);
 
-            // Make sure -s is in there
-            if (String.IsNullOrEmpty(a["s"]))
+            // Make sure -showid is in there
+            if (String.IsNullOrEmpty(a["showid"]))
             {
                 Console.WriteLine("Missing Show Id. Please include the parameter '-s <showid>'");
                 return;
             }
 
             // Get the showid
-            showId = a["s"];
+            showId = a["showid"];
+
+            // Save to location
+            if (!String.IsNullOrEmpty(a["saveLoc"]))
+            {
+                saveToParent = a["saveLoc"];
+            }
 
             using (var client = new HttpClient())
             {
@@ -47,7 +72,33 @@ namespace TwitDownloader
                 string seeResponse = getResponse.Content.ReadAsStringAsync().Result; // For data validation
                 dynamic jsonResponse = JsonConvert.DeserializeObject<dynamic>(getResponse.Content.ReadAsStringAsync().Result);
 
+                foreach (dynamic episode in jsonResponse.episodes)
+                {
+                    Console.WriteLine("=========================");
+                    Console.WriteLine(String.Format("Downloading episode {0}.", episode.episodeNumber));
+                    // Create the folder
+                    string folderName = String.Format("{0}{1}_{2}_{3}\\", saveToParent, episode.episodeNumber, episode.label, episode.airingDate.Value.ToString("yyyy-MM-dd"));
+                    Directory.CreateDirectory(folderName);
 
+                    // Download the files
+                    using (var webClient = new WebClient())
+                    {
+                        // Download Audio File
+                        if (downloadAudio)
+                        {
+                            Console.WriteLine(String.Format("Downloading file '{0}'.", UrlHelper.GetFileName(episode.video_audio.mediaUrl.Value)));
+                            webClient.DownloadFile(episode.video_audio.mediaUrl.Value, String.Format("{0}{1}", folderName, UrlHelper.GetFileName(episode.video_audio.mediaUrl.Value)));
+                        }
+
+                        // Download
+                        Console.WriteLine(String.Format("Downloading file '{0}'.", UrlHelper.GetFileName(UrlHelper.GetFileName(String.Format(snShowNotes, episode.episodeNumber)))));
+                        webClient.DownloadFile(String.Format(snShowNotes, episode.episodeNumber), String.Format("{0}{1}", folderName, UrlHelper.GetFileName(String.Format(snShowNotes, episode.episodeNumber))));
+                        Console.WriteLine(String.Format("Downloading file '{0}'.", UrlHelper.GetFileName(UrlHelper.GetFileName(String.Format(snTranscriptPdf, episode.episodeNumber)))));
+                        webClient.DownloadFile(String.Format(snTranscriptPdf, episode.episodeNumber), String.Format("{0}{1}", folderName, UrlHelper.GetFileName(String.Format(snTranscriptPdf, episode.episodeNumber))));
+                        Console.WriteLine(String.Format("Downloading file '{0}'.", UrlHelper.GetFileName(UrlHelper.GetFileName(String.Format(snTranscriptText, episode.episodeNumber)))));
+                        webClient.DownloadFile(String.Format(snTranscriptText, episode.episodeNumber), String.Format("{0}{1}", folderName, UrlHelper.GetFileName(String.Format(snTranscriptText, episode.episodeNumber))));
+                    }
+                }
             }
         }
     }
