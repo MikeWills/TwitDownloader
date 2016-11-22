@@ -19,7 +19,7 @@ namespace TwitDownloader
             string url = String.Empty;
             string showId = String.Empty;
             string filename = String.Empty;
-            string lastEpisode = String.Empty;
+            DateTime lastEpisode = DateTime.MinValue;
 
             // API Key
             string appid = "f6924e79";
@@ -84,100 +84,107 @@ namespace TwitDownloader
                 string errorLogFile = String.Format("{0}error.log", saveToParent);
                 if (File.Exists(logFile))
                 {
-                    lastEpisode = File.ReadAllText(logFile);
+                    lastEpisode = DateTime.Parse(File.ReadAllText(logFile));
                 }
 
-                // ========================================
-                // Get the episodes
-                url = String.Format("http://twit.tv/api/v1.0/episodes?filter%5Bshows%5D={0}&sort=airingDate", showId);
-                getResponse = client.GetAsync(url).Result;
-                seeResponse = getResponse.Content.ReadAsStringAsync().Result; // For data validation
-                jsonResponse = JsonConvert.DeserializeObject<dynamic>(getResponse.Content.ReadAsStringAsync().Result);
-
-                foreach (dynamic episode in jsonResponse.episodes)
+                do
                 {
-                    if (!String.IsNullOrEmpty(lastEpisode) && DateTime.Parse(episode.airingDate.Value) > DateTime.Parse(lastEpisode))
-                    {
-                        continue;
-                    }
+                    // ========================================
+                    // Get the episodes
+                    url = String.Format("http://twit.tv/api/v1.0/episodes?filter%5Bshows%5D={0}&sort=airingDate", showId);
+                    getResponse = client.GetAsync(url).Result;
+                    seeResponse = getResponse.Content.ReadAsStringAsync().Result; // For data validation
+                    jsonResponse = JsonConvert.DeserializeObject<dynamic>(getResponse.Content.ReadAsStringAsync().Result);
 
-                    Console.WriteLine("=========================");
-                    Console.WriteLine(String.Format("Downloading {0} - Episode {1}.", showName, episode.episodeNumber));
-                    // Create the folder
-                    string folderName = String.Format("{0}{1}_{2}_{3}\\", saveToParent, Int32.Parse(episode.episodeNumber.Value).ToString("0000"), episode.label, episode.airingDate.Value.ToString("yyyy-MM-dd"));
-                    Directory.CreateDirectory(folderName);
-
-                    // Download the files
-                    using (var webClient = new WebClient())
+                    foreach (dynamic episode in jsonResponse.episodes)
                     {
-                        // Download Audio File
-                        if (downloadAudio)
+                        if (episode.airingDate.Value <= lastEpisode)
                         {
-                            filename = UrlHelper.GetFileName(episode.video_audio.mediaUrl.Value);
-                            if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
-                            {
-                                Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
-                                webClient.DownloadFile(episode.video_audio.mediaUrl.Value, String.Format("{0}{1}", folderName, filename));
-                            }
+                            continue;
                         }
 
-                        #region Security Now Only
-                        // The following is only applicible for Security Now
-                        if (showId == "1636")
+                        Console.WriteLine("=========================");
+                        Console.WriteLine(String.Format("Downloading {0} - Episode {1}.", showName, episode.episodeNumber));
+                        // Create the folder
+                        string folderName = String.Format("{0}{1}_{2}_{3}\\", saveToParent, Int32.Parse(episode.episodeNumber.Value).ToString("0000"), episode.label, episode.airingDate.Value.ToString("yyyy-MM-dd"));
+                        Directory.CreateDirectory(folderName);
+
+                        // Download the files
+                        using (var webClient = new WebClient())
                         {
-                            // Download Security Now Shownotes
-                            filename = UrlHelper.GetFileName(String.Format(snShowNotes, episode.episodeNumber));
-                            if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
+                            // Download Audio File
+                            if (downloadAudio)
                             {
-                                try
+                                filename = UrlHelper.GetFileName(episode.video_audio.mediaUrl.Value);
+                                if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
                                 {
-                                    Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
-                                    webClient.DownloadFile(String.Format(snShowNotes, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
-                                }
-                                catch (WebException e)
-                                {
-                                    File.AppendAllText(errorLogFile, String.Format(snShowNotes, episode.episodeNumber) + " returned the error: " + e.Message);
-                                    Console.WriteLine(String.Format(snShowNotes, episode.episodeNumber) + " returned an error.");
+                                    try
+                                    {
+                                        Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
+                                        webClient.DownloadFile(episode.video_audio.mediaUrl.Value, String.Format("{0}{1}", folderName, filename));
+                                    }
+                                    catch (WebException e)
+                                    {
+                                        File.AppendAllText(errorLogFile, episode.video_audio.mediaUrl.Value + " returned the error: " + e.Message + "\n");
+                                    }
                                 }
                             }
 
-                            // Download Security Now Transcript PDF
-                            filename = UrlHelper.GetFileName(String.Format(snTranscriptPdf, episode.episodeNumber));
-                            if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
+                            #region Security Now Only
+                            // The following is only applicible for Security Now
+                            if (showId == "1636")
                             {
-                                try
+                                // Download Security Now Shownotes
+                                filename = UrlHelper.GetFileName(String.Format(snShowNotes, episode.episodeNumber));
+                                if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
                                 {
-                                    Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
-                                    webClient.DownloadFile(String.Format(snTranscriptPdf, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                                    try
+                                    {
+                                        Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
+                                        webClient.DownloadFile(String.Format(snShowNotes, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                                    }
+                                    catch (WebException e)
+                                    {
+                                        File.AppendAllText(errorLogFile, String.Format(snShowNotes, episode.episodeNumber) + " returned the error: " + e.Message + "\n");
+                                    }
                                 }
-                                catch (WebException e)
-                                {
-                                    File.AppendAllText(errorLogFile, String.Format(snShowNotes, episode.episodeNumber) + " returned the error: " + e.Message);
-                                    Console.WriteLine(String.Format(snTranscriptPdf, episode.episodeNumber) + " returned an error.");
-                                }
-                            }
 
-                            // Download Security Now Transcript Text
-                            filename = UrlHelper.GetFileName(String.Format(snTranscriptText, episode.episodeNumber));
-                            if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
-                            {
-                                try
+                                // Download Security Now Transcript PDF
+                                filename = UrlHelper.GetFileName(String.Format(snTranscriptPdf, episode.episodeNumber));
+                                if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
                                 {
-                                    Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
-                                    webClient.DownloadFile(String.Format(snTranscriptText, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                                    try
+                                    {
+                                        Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
+                                        webClient.DownloadFile(String.Format(snTranscriptPdf, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                                    }
+                                    catch (WebException e)
+                                    {
+                                        File.AppendAllText(errorLogFile, String.Format(snShowNotes, episode.episodeNumber) + " returned the error: " + e.Message + "\n");
+                                    }
                                 }
-                                catch (WebException e)
+
+                                // Download Security Now Transcript Text
+                                filename = UrlHelper.GetFileName(String.Format(snTranscriptText, episode.episodeNumber));
+                                if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
                                 {
-                                    File.AppendAllText(errorLogFile, String.Format(snShowNotes, episode.episodeNumber) + " returned the error: " + e.Message);
-                                    Console.WriteLine(String.Format(snTranscriptText, episode.episodeNumber) + " returned an error.");
+                                    try
+                                    {
+                                        Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
+                                        webClient.DownloadFile(String.Format(snTranscriptText, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                                    }
+                                    catch (WebException e)
+                                    {
+                                        File.AppendAllText(errorLogFile, String.Format(snTranscriptText, episode.episodeNumber) + " returned the error: " + e.Message + "\n");
+                                    }
                                 }
                             }
+                            #endregion
+
+                            File.WriteAllText(logFile, episode.airingDate.Value.ToString());
                         }
-                        #endregion
-
-                        File.WriteAllText(logFile, DateTime.Parse(episode.airingDate.Value).ToString());
                     }
-                }
+                } while (String.IsNullOrEmpty(jsonResponse._links.next.href));
             }
         }
     }
