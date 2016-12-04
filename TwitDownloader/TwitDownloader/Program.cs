@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using TwitDownloader.Library;
 
 namespace TwitDownloader
@@ -20,6 +21,7 @@ namespace TwitDownloader
             string showId = String.Empty;
             string filename = String.Empty;
             DateTime lastEpisode = DateTime.MinValue;
+            string lastPage = String.Empty;
 
             // API Key
             string appid = "f6924e79";
@@ -82,19 +84,33 @@ namespace TwitDownloader
                 // Open the log file that shows the last show downloaded
                 string logFile = String.Format("{0}LastEpisode.txt", saveToParent);
                 string errorLogFile = String.Format("{0}error.log", saveToParent);
+
                 if (File.Exists(logFile))
                 {
-                    lastEpisode = DateTime.Parse(File.ReadAllText(logFile));
+                    string[] parseFile = File.ReadAllText(logFile).Split('|');
+                    lastEpisode = DateTime.Parse(parseFile[0]);
+                    lastPage = parseFile[1];
                 }
 
                 do
                 {
                     // ========================================
                     // Get the episodes
-                    url = String.Format("http://twit.tv/api/v1.0/episodes?filter%5Bshows%5D={0}&sort=airingDate", showId);
+                    if (String.IsNullOrEmpty(lastPage))
+                    {
+                        url = String.Format("http://twit.tv/api/v1.0/episodes?filter%5Bshows%5D={0}&sort=airingDate&page=1", showId);
+                    }
+                    else
+                    {
+                        url = lastPage;
+                    }
+
                     getResponse = client.GetAsync(url).Result;
                     seeResponse = getResponse.Content.ReadAsStringAsync().Result; // For data validation
                     jsonResponse = JsonConvert.DeserializeObject<dynamic>(getResponse.Content.ReadAsStringAsync().Result);
+
+                    int recCount = jsonResponse.episodes.Count();
+                    int recNumber = 0;
 
                     foreach (dynamic episode in jsonResponse.episodes)
                     {
@@ -106,7 +122,17 @@ namespace TwitDownloader
                         Console.WriteLine("=========================");
                         Console.WriteLine(String.Format("Downloading {0} - Episode {1}.", showName, episode.episodeNumber));
                         // Create the folder
-                        string folderName = String.Format("{0}{1}_{2}_{3}\\", saveToParent, Int32.Parse(episode.episodeNumber.Value).ToString("0000"), episode.label, episode.airingDate.Value.ToString("yyyy-MM-dd"));
+                        string episodeNumber = String.Empty;
+                        try
+                        {
+                            episodeNumber = Int32.Parse(episode.episodeNumber.Value).ToString("0000");
+                        }
+                        catch (Exception)
+                        {
+                            episodeNumber = episode.episodeNumber.Value;
+                        }
+
+                        string folderName = String.Format("{0}{1}_{2}_{3}\\", saveToParent, episodeNumber, episode.label, episode.airingDate.Value.ToString("yyyy-MM-dd"));
                         Directory.CreateDirectory(folderName);
 
                         // Download the files
@@ -180,8 +206,14 @@ namespace TwitDownloader
                                 }
                             }
                             #endregion
+                            Uri parseUrl = new Uri(url);
+                            lastPage = HttpUtility.ParseQueryString(parseUrl.Query).Get("page");
+                            File.WriteAllText(logFile, String.Format("{0} | {1}", episode.airingDate.Value.ToString(), lastPage));
+                        }
+                        recNumber++;
+                        if (recNumber >= recCount)
+                        {
 
-                            File.WriteAllText(logFile, episode.airingDate.Value.ToString());
                         }
                     }
                 } while (String.IsNullOrEmpty(jsonResponse._links.next.href));
