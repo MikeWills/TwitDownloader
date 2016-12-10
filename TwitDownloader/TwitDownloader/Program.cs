@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using TwitDownloader.Library;
@@ -89,7 +90,14 @@ namespace TwitDownloader
                 {
                     string[] parseFile = File.ReadAllText(logFile).Split('|');
                     lastEpisode = DateTime.Parse(parseFile[0]);
-                    lastPage = parseFile[1];
+                    try
+                    {
+                        lastPage = parseFile[1];
+                    }
+                    catch (IndexOutOfRangeException e)
+                    {
+                        lastPage = "1";
+                    }
                 }
 
                 do
@@ -102,20 +110,25 @@ namespace TwitDownloader
                     }
                     else
                     {
-                        url = lastPage;
+                        url = String.Format("http://twit.tv/api/v1.0/episodes?filter%5Bshows%5D={0}&sort=airingDate&page={1}", showId, lastPage.Trim());
                     }
 
                     getResponse = client.GetAsync(url).Result;
                     seeResponse = getResponse.Content.ReadAsStringAsync().Result; // For data validation
                     jsonResponse = JsonConvert.DeserializeObject<dynamic>(getResponse.Content.ReadAsStringAsync().Result);
 
-                    int recCount = jsonResponse.episodes.Count();
-                    int recNumber = 0;
+                    int totalEpisodes = jsonResponse.episodes.Count;
+                    int recNumber = 1;
 
                     foreach (dynamic episode in jsonResponse.episodes)
                     {
                         if (episode.airingDate.Value <= lastEpisode)
                         {
+                            recNumber++;
+                            if (recNumber > totalEpisodes)
+                            {
+                                lastPage = IncreasePageCount(lastPage);
+                            }
                             continue;
                         }
 
@@ -123,6 +136,7 @@ namespace TwitDownloader
                         Console.WriteLine(String.Format("Downloading {0} - Episode {1}.", showName, episode.episodeNumber));
                         // Create the folder
                         string episodeNumber = String.Empty;
+
                         try
                         {
                             episodeNumber = Int32.Parse(episode.episodeNumber.Value).ToString("0000");
@@ -132,7 +146,7 @@ namespace TwitDownloader
                             episodeNumber = episode.episodeNumber.Value;
                         }
 
-                        string folderName = String.Format("{0}{1}_{2}_{3}\\", saveToParent, episodeNumber, episode.label, episode.airingDate.Value.ToString("yyyy-MM-dd"));
+                        string folderName = String.Format("{0}{1}_{2}_{3}\\", saveToParent, episodeNumber, MakeValidFileName(episode.label.Value), episode.airingDate.Value.ToString("yyyy-MM-dd"));
                         Directory.CreateDirectory(folderName);
 
                         // Download the files
@@ -206,18 +220,45 @@ namespace TwitDownloader
                                 }
                             }
                             #endregion
+
                             Uri parseUrl = new Uri(url);
                             lastPage = HttpUtility.ParseQueryString(parseUrl.Query).Get("page");
                             File.WriteAllText(logFile, String.Format("{0} | {1}", episode.airingDate.Value.ToString(), lastPage));
                         }
-                        recNumber++;
-                        if (recNumber >= recCount)
-                        {
 
+                        recNumber++;
+
+                        if (recNumber > totalEpisodes)
+                        {
+                            lastPage = IncreasePageCount(lastPage);
                         }
+
                     }
-                } while (String.IsNullOrEmpty(jsonResponse._links.next.href));
+                } while (!String.IsNullOrEmpty(jsonResponse._links.next.href.Value));
             }
+        }
+
+        /// <summary>
+        /// Get the next page of episodes
+        /// </summary>
+        /// <param name="lastPage"></param>
+        /// <returns></returns>
+        private static string IncreasePageCount(string lastPage)
+        {
+            return (Int32.Parse(lastPage) + 1).ToString();
+        }
+
+        /// <summary>
+        /// Make sure the episode makes a valid filename
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        private static string MakeValidFileName(string name)
+        {
+            string invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
+            string invalidRegStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
+
+            return Regex.Replace(name, invalidRegStr, "_");
         }
     }
 }
