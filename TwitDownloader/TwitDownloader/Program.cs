@@ -134,6 +134,7 @@ namespace TwitDownloader
 
                         Console.WriteLine("=========================");
                         Console.WriteLine(String.Format("Downloading {0} - Episode {1}.", showName, episode.episodeNumber));
+
                         // Create the folder
                         string episodeNumber = String.Empty;
 
