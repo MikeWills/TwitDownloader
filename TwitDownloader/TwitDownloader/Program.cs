@@ -261,5 +261,20 @@ namespace TwitDownloader
 
             return Regex.Replace(name, invalidRegStr, "_");
         }
+
+        /// <summary>
+        /// Create a shortcut link
+        /// </summary>
+        /// <param name="linkName"></param>
+        /// <param name="linkUrl"></param>
+        private void urlShortcutToDesktop(string folder, string linkName, string linkUrl)
+        {
+            using (StreamWriter writer = new StreamWriter(folder + "\\" + linkName + ".url"))
+            {
+                writer.WriteLine("[InternetShortcut]");
+                writer.WriteLine("URL=" + linkUrl);
+                writer.Flush();
+            }
+        }
     }
 }
