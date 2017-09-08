@@ -62,9 +62,10 @@ namespace TwitDownloader
             showId = a["showid"];
 
             // Change the default save location
+            // -saveLoc:"c:\twit"
             if (!String.IsNullOrEmpty(a["saveLoc"]))
             {
-                saveToParent = a["saveLoc"];
+                saveToParent = String.Format("{0}\\", a["saveLoc"]);
             }
             #endregion
 
@@ -149,6 +150,7 @@ namespace TwitDownloader
 
                         string folderName = String.Format("{0}{1}_{2}_{3}\\", saveToParent, episodeNumber, MakeValidFileName(episode.label.Value), episode.airingDate.Value.ToString("yyyy-MM-dd"));
                         Directory.CreateDirectory(folderName);
+                        Console.WriteLine(String.Format("Created {0}", folderName));
 
                         // Download the files
                         using (var webClient = new WebClient())
