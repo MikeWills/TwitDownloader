@@ -178,47 +178,48 @@ namespace TwitDownloader
                             if (showId == "1636")
                             {
                                 // Download Security Now Shownotes
-                                filename = UrlHelper.GetFileName(String.Format(snShowNotes, episode.episodeNumber));
+                                string strEpisode = episode.episodeNumber.ToString().PadLeft(3,'0');
+                                filename = UrlHelper.GetFileName(String.Format(snShowNotes, strEpisode));
                                 if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
                                 {
                                     try
                                     {
                                         Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
-                                        webClient.DownloadFile(String.Format(snShowNotes, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                                        webClient.DownloadFile(String.Format(snShowNotes, strEpisode), String.Format("{0}{1}", folderName, filename));
                                     }
                                     catch (WebException e)
                                     {
-                                        File.AppendAllText(errorLogFile, String.Format(snShowNotes, episode.episodeNumber) + " returned the error: " + e.Message + "\n");
+                                        File.AppendAllText(errorLogFile, String.Format(snShowNotes, strEpisode) + " returned the error: " + e.Message + "\n");
                                     }
                                 }
 
                                 // Download Security Now Transcript PDF
-                                filename = UrlHelper.GetFileName(String.Format(snTranscriptPdf, episode.episodeNumber));
+                                filename = UrlHelper.GetFileName(String.Format(snTranscriptPdf, strEpisode));
                                 if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
                                 {
                                     try
                                     {
                                         Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
-                                        webClient.DownloadFile(String.Format(snTranscriptPdf, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                                        webClient.DownloadFile(String.Format(snTranscriptPdf, strEpisode), String.Format("{0}{1}", folderName, filename));
                                     }
                                     catch (WebException e)
                                     {
-                                        File.AppendAllText(errorLogFile, String.Format(snShowNotes, episode.episodeNumber) + " returned the error: " + e.Message + "\n");
+                                        File.AppendAllText(errorLogFile, String.Format(snTranscriptPdf, strEpisode) + " returned the error: " + e.Message + "\n");
                                     }
                                 }
 
                                 // Download Security Now Transcript Text
-                                filename = UrlHelper.GetFileName(String.Format(snTranscriptText, episode.episodeNumber));
+                                filename = UrlHelper.GetFileName(String.Format(snTranscriptText, strEpisode));
                                 if (!File.Exists(String.Format("{0}{1}", folderName, filename)))
                                 {
                                     try
                                     {
                                         Console.WriteLine(String.Format("Downloading file '{0}'.", filename));
-                                        webClient.DownloadFile(String.Format(snTranscriptText, episode.episodeNumber), String.Format("{0}{1}", folderName, filename));
+                                        webClient.DownloadFile(String.Format(snTranscriptText, strEpisode), String.Format("{0}{1}", folderName, filename));
                                     }
                                     catch (WebException e)
                                     {
-                                        File.AppendAllText(errorLogFile, String.Format(snTranscriptText, episode.episodeNumber) + " returned the error: " + e.Message + "\n");
+                                        File.AppendAllText(errorLogFile, String.Format(snTranscriptText, strEpisode) + " returned the error: " + e.Message + "\n");
                                     }
                                 }
                             }
