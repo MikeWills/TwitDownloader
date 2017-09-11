@@ -238,7 +238,7 @@ namespace TwitDownloader
                         }
 
                     }
-                } while (!String.IsNullOrEmpty(jsonResponse._links.next.href.Value));
+                } while (jsonResponse._links.next != null && !String.IsNullOrEmpty(jsonResponse._links.next.href.Value));
             }
         }
 
